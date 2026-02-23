@@ -3,6 +3,13 @@ export interface NotifyKitConfig {
   baseUrl?: string;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -41,44 +48,4 @@ export interface JobStatus {
   errorMessage?: string;
   createdAt: string;
   completedAt?: string;
-}
-
-//customer domain verification types
-export interface DomainVerificationRequest {
-  domain: string;
-}
-
-export interface DnsRecord {
-  id: number;
-  type: string;
-  host: string;
-  value: string;
-  description: string;
-}
-
-export interface DomainVerificationResponse {
-  domain: string;
-  status: "pending" | "verified";
-  dnsRecords: DnsRecord[];
-  instructions: {
-    message: string;
-    steps: string[];
-    estimatedTime: string;
-  };
-}
-
-export interface DomainStatusResponse {
-  domain: string;
-  verified: boolean;
-  message: string;
-  validationResults?: any;
-}
-
-export interface DomainInfoResponse {
-  domain: string | null;
-  verified: boolean;
-  status: "not_configured" | "pending" | "verified";
-  dnsRecords?: any;
-  requestedAt?: string;
-  verifiedAt?: string;
 }

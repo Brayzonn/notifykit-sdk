@@ -5,10 +5,8 @@ import {
   SendWebhookOptions,
   JobResponse,
   JobStatus,
-  DomainStatusResponse,
-  DomainVerificationResponse,
-  DomainInfoResponse,
   ApiInfo,
+  PaginationMeta,
 } from "./types";
 import { NotifyKitError } from "./errors";
 
@@ -30,7 +28,8 @@ export class NotifyKitClient {
 
     this.client.interceptors.response.use(
       (response) => {
-        const apiResponse = response.data.data;
+        const apiResponse = response.data?.data;
+        if (!apiResponse) return response.data;
         if (apiResponse.message) return apiResponse.message;
         return apiResponse;
       },
@@ -105,7 +104,7 @@ export class NotifyKitClient {
     limit?: number;
     type?: "email" | "webhook";
     status?: "pending" | "processing" | "completed" | "failed";
-  }): Promise<{ data: JobStatus[]; pagination: any }> {
+  }): Promise<{ data: JobStatus[]; pagination: PaginationMeta }> {
     return await this.client.get("/api/v1/notifications/jobs", {
       params: options,
     });
@@ -114,33 +113,5 @@ export class NotifyKitClient {
   /** Retry a failed job */
   async retryJob(jobId: string): Promise<JobResponse> {
     return await this.client.post(`/api/v1/notifications/jobs/${jobId}/retry`);
-  }
-
-  // ================================
-  // DOMAIN
-  // ================================
-
-  /** Request domain verification */
-  async requestDomainVerification(
-    domain: string,
-  ): Promise<DomainVerificationResponse> {
-    return await this.client.post("/api/v1/customers/domain/request", {
-      domain,
-    });
-  }
-
-  /** Check domain verification status */
-  async verifyDomain(): Promise<DomainStatusResponse> {
-    return await this.client.post("/api/v1/customers/domain/verify");
-  }
-
-  /** Get domain configuration status */
-  async getDomainStatus(): Promise<DomainInfoResponse> {
-    return await this.client.get("/api/v1/customers/domain/status");
-  }
-
-  /** Remove domain configuration */
-  async removeDomain(): Promise<{ message: string }> {
-    return await this.client.delete("/api/v1/customers/domain");
   }
 }
