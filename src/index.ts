@@ -1,3 +1,3 @@
-export { NotifyHubClient } from "./client";
+export { NotifyKitClient } from "./client";
 export * from "./types";
 export * from "./errors";

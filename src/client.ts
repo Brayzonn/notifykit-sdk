@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import {
-  NotifyHubConfig,
+  NotifyKitConfig,
   SendEmailOptions,
   SendWebhookOptions,
   JobResponse,
@@ -10,18 +10,18 @@ import {
   DomainInfoResponse,
   ApiInfo,
 } from "./types";
-import { NotifyHubError } from "./errors";
+import { NotifyKitError } from "./errors";
 
-export class NotifyHubClient {
+export class NotifyKitClient {
   private client: AxiosInstance;
 
-  constructor(config: NotifyHubConfig) {
+  constructor(config: NotifyKitConfig) {
     if (!config.apiKey) {
       throw new Error("API key is required");
     }
 
     this.client = axios.create({
-      baseURL: config.baseUrl || "https://api.notifyhub.com",
+      baseURL: config.baseUrl || "https://api.notifykit.dev",
       headers: {
         "X-API-Key": config.apiKey,
         "Content-Type": "application/json",
@@ -58,52 +58,48 @@ export class NotifyHubClient {
             }
           }
 
-          throw new NotifyHubError(message, statusCode, data, errors);
+          throw new NotifyKitError(message, statusCode, data, errors);
         }
 
-        throw new NotifyHubError(error.message || "Network error occurred");
-      }
+        throw new NotifyKitError(error.message || "Network error occurred");
+      },
     );
   }
 
-  /**
-   * Test API connection
-   */
+  // ================================
+  // APP
+  // ================================
+
+  /** Test API connection */
   async ping(): Promise<string> {
     return await this.client.get("/api/v1/ping");
   }
 
-  /**
-   * Get API information
-   */
+  /** Get API information */
   async getApiInfo(): Promise<ApiInfo> {
     return await this.client.get("/api/v1/info");
   }
 
-  /**
-   * Send an email notification
-   */
+  // ================================
+  // NOTIFICATIONS
+  // ================================
+
+  /** Send an email notification */
   async sendEmail(options: SendEmailOptions): Promise<JobResponse> {
     return await this.client.post("/api/v1/notifications/email", options);
   }
 
-  /**
-   * Send a webhook notification
-   */
+  /** Send a webhook notification */
   async sendWebhook(options: SendWebhookOptions): Promise<JobResponse> {
     return await this.client.post("/api/v1/notifications/webhook", options);
   }
 
-  /**
-   * Get job status by ID
-   */
+  /** Get job status by ID */
   async getJob(jobId: string): Promise<JobStatus> {
     return await this.client.get(`/api/v1/notifications/jobs/${jobId}`);
   }
 
-  /**
-   * List jobs with optional filters
-   */
+  /** List jobs with optional filters */
   async listJobs(options?: {
     page?: number;
     limit?: number;
@@ -115,41 +111,35 @@ export class NotifyHubClient {
     });
   }
 
-  /**
-   * Retry a failed job
-   */
+  /** Retry a failed job */
   async retryJob(jobId: string): Promise<JobResponse> {
     return await this.client.post(`/api/v1/notifications/jobs/${jobId}/retry`);
   }
 
-  /**
-   * Request domain verification
-   */
+  // ================================
+  // DOMAIN
+  // ================================
+
+  /** Request domain verification */
   async requestDomainVerification(
-    domain: string
+    domain: string,
   ): Promise<DomainVerificationResponse> {
     return await this.client.post("/api/v1/customers/domain/request", {
       domain,
     });
   }
 
-  /**
-   * Check domain verification status
-   */
+  /** Check domain verification status */
   async verifyDomain(): Promise<DomainStatusResponse> {
     return await this.client.post("/api/v1/customers/domain/verify");
   }
 
-  /**
-   * Get domain configuration status
-   */
+  /** Get domain configuration status */
   async getDomainStatus(): Promise<DomainInfoResponse> {
     return await this.client.get("/api/v1/customers/domain/status");
   }
 
-  /**
-   * Remove domain configuration
-   */
+  /** Remove domain configuration */
   async removeDomain(): Promise<{ message: string }> {
     return await this.client.delete("/api/v1/customers/domain");
   }

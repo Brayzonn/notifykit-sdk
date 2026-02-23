@@ -1,4 +1,4 @@
-export interface NotifyHubConfig {
+export interface NotifyKitConfig {
   apiKey: string;
   baseUrl?: string;
 }

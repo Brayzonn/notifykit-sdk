@@ -1,4 +1,4 @@
-export class NotifyHubError extends Error {
+export class NotifyKitError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
@@ -6,7 +6,7 @@ export class NotifyHubError extends Error {
     public errors?: any[]
   ) {
     super(message);
-    this.name = "NotifyHubError";
+    this.name = "NotifyKitError";
 
     Error.captureStackTrace(this, this.constructor);
   }

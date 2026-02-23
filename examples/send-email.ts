@@ -1,7 +1,7 @@
-import { NotifyHubClient } from "@notifyhub/sdk";
+import { NotifyKitClient } from "@notifykit/sdk";
 
-const client = new NotifyHubClient({
-  apiKey: process.env.NOTIFYHUB_API_KEY!,
+const client = new NotifyKitClient({
+  apiKey: process.env.NOTIFYKIT_API_KEY!,
 });
 
 async function main() {

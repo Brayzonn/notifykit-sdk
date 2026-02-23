@@ -1,24 +1,24 @@
-# NotifyHub SDK
+# NotifyKit SDK
 
-Official Node.js/TypeScript SDK for NotifyHub - Send emails and webhooks with ease.
+Official Node.js/TypeScript SDK for NotifyKit - Send emails and webhooks with ease.
 
 ## Installation
 
 ```bash
-npm install @notifyhub/sdk
+npm install @notifykit/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { NotifyHubClient } from "@notifyhub/sdk";
+import { NotifyKitClient } from "@notifykit/sdk";
 
-const notifyHub = new NotifyHubClient({
+const notifyKit = new NotifyKitClient({
   apiKey: "ntfy_sk_your_api_key",
 });
 
 // Send an email
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Welcome!",
   body: "<h1>Hello World</h1>",
@@ -34,7 +34,7 @@ await notifyHub.sendEmail({
 ### Basic Email
 
 ```typescript
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Order Confirmed",
   body: "<h1>Thanks for your order!</h1>",
@@ -44,7 +44,7 @@ await notifyHub.sendEmail({
 ### Custom From Address
 
 ```typescript
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Welcome",
   body: "<h1>Hello</h1>",
@@ -55,7 +55,7 @@ await notifyHub.sendEmail({
 ### Prevent Duplicate Sends (Recommended)
 
 ```typescript
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Welcome",
   body: "<h1>Hello</h1>",
@@ -78,7 +78,7 @@ await notifyHub.sendEmail({
 ### Basic Webhook
 
 ```typescript
-await notifyHub.sendWebhook({
+await notifyKit.sendWebhook({
   url: "https://yourapp.com/webhooks/order",
   payload: {
     orderId: "12345",
@@ -90,7 +90,7 @@ await notifyHub.sendWebhook({
 ### With Custom Headers and Method
 
 ```typescript
-await notifyHub.sendWebhook({
+await notifyKit.sendWebhook({
   url: "https://yourapp.com/webhooks/order",
   method: "POST", // GET, POST, PUT, PATCH, DELETE(default is POST)
   payload: { orderId: "12345" },
@@ -113,7 +113,7 @@ All notifications return a job object with a job Id that can be tracked.
 **Important:** `sendEmail()` returns immediately after queuing the job (HTTP 202 Accepted). The actual email is sent asynchronously by a background worker. Always check the job status to confirm delivery.
 
 ```typescript
-const job = await notifyHub.sendEmail({
+const job = await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Test",
   body: "<h1>Test</h1>",
@@ -122,7 +122,7 @@ const job = await notifyHub.sendEmail({
 console.log(`Job ID: ${job.jobId}`); // Save this for later tracking
 
 // Check status later
-const status = await notifyHub.getJob(job.jobId);
+const status = await notifyKit.getJob(job.jobId);
 
 console.log(status.status); // 'pending' | 'processing' | 'completed' | 'failed'
 
@@ -136,7 +136,7 @@ if (status.status === "completed") {
 ### List Jobs with Filters
 
 ```typescript
-const result = await notifyHub.listJobs({
+const result = await notifyKit.listJobs({
   page: 1,
   limit: 20,
   type: "email", // Filter by type: 'email' or 'webhook'
@@ -154,14 +154,14 @@ result.data.forEach((job) => {
 ### Retry Failed Jobs
 
 ```typescript
-const job = await notifyHub.sendEmail({...});
+const job = await notifyKit.sendEmail({...});
 
 // Later, if job failed
-const status = await notifyHub.getJob(job.jobId);
+const status = await notifyKit.getJob(job.jobId);
 
 if (status.status === "failed") {
   // Retry the job
-  await notifyHub.retryJob(job.jobId);
+  await notifyKit.retryJob(job.jobId);
   console.log("Job queued for retry");
 }
 ```
@@ -172,12 +172,12 @@ if (status.status === "failed") {
 
 ## Domain Management
 
-Use your own verified domain to send emails (e.g., `welcome@yourapp.com` instead of `noreply@notifyhub.com`).
+Use your own verified domain to send emails (e.g., `welcome@yourapp.com` instead of `noreply@notifykit.dev`).
 
 ### Step 1: Request Domain Verification
 
 ```typescript
-const verification = await notifyHub.requestDomainVerification("yourapp.com");
+const verification = await notifyKit.requestDomainVerification("yourapp.com");
 
 console.log(`Domain: ${verification.domain}`);
 console.log(`Status: ${verification.status}`); // 'pending' or 'verified'
@@ -268,7 +268,7 @@ TTL: Automatic
 After adding DNS records and waiting for propagation:
 
 ```typescript
-const status = await notifyHub.verifyDomain();
+const status = await notifyKit.verifyDomain();
 
 if (status.verified) {
   console.log("Domain verified!");
@@ -300,7 +300,7 @@ Once verified, emails automatically use `noreply@em.yourapp.com` if you don't sp
 
 ```typescript
 // Automatically uses: noreply@em.yourapp.com
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Welcome!",
   body: "Welcome to MyApp!",
@@ -308,7 +308,7 @@ await notifyHub.sendEmail({
 });
 
 // Or specify a custom sender address on your domain
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Support Response",
   body: "We're here to help",
@@ -316,7 +316,7 @@ await notifyHub.sendEmail({
 });
 
 // You can also use different names with the same domain
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   to: "user@example.com",
   subject: "Order Shipped",
   body: "Your order is on the way!",
@@ -352,7 +352,7 @@ Most email clients only show `yourapp.com` in the sender name, so users typicall
 **If you try to use the main domain:**
 
 ```typescript
-await notifyHub.sendEmail({
+await notifyKit.sendEmail({
   from: "hello@yourapp.com", //  Missing "em."
 });
 
@@ -363,7 +363,7 @@ await notifyHub.sendEmail({
 ### Check Domain Status Anytime
 
 ```typescript
-const info = await notifyHub.getDomainStatus();
+const info = await notifyKit.getDomainStatus();
 
 console.log(`Domain: ${info.domain}`); // 'yourapp.com' or null
 console.log(`Verified: ${info.verified}`); // true or false
@@ -390,9 +390,9 @@ if (info.verified) {
 ### Remove Domain Configuration
 
 ```typescript
-await notifyHub.removeDomain();
+await notifyKit.removeDomain();
 console.log(
-  "Domain removed. Emails will now send from NotifyHub's default domain."
+  "Domain removed. Emails will now send from NotifyKit's default domain."
 );
 ```
 
@@ -420,17 +420,17 @@ dig em8724.yourapp.com CNAME
 3. **TTL too high** - Lower TTL to 300 seconds (5 minutes) for faster propagation
 4. **Old records** - Delete any existing records for the same hostname first
 
-### Emails Still Sending from NotifyHub Domain
+### Emails Still Sending from NotifyKit Domain
 
 **Possible causes:**
 
-1. Domain not verified yet - Check status: `await notifyHub.getDomainStatus()`
+1. Domain not verified yet - Check status: `await notifyKit.getDomainStatus()`
 2. Free plan - Custom domains only available on paid plans (Indie, Startup)
 3. Verification failed - DNS records may have been removed
 
 ### Verification Says "Domain Already Verified by Another Customer"
 
-Each domain can only be verified by one NotifyHub account. If you own this domain:
+Each domain can only be verified by one NotifyKit account. If you own this domain:
 
 1. Remove it from the other account first
 2. Then verify it on your current account
@@ -472,14 +472,14 @@ This enables email authentication reporting and protects against spoofing.
 ### User Signup Flow
 
 ```typescript
-import { NotifyHubClient } from "@notifyhub/sdk";
+import { NotifyKitClient } from "@notifykit/sdk";
 
-const notifyHub = new NotifyHubClient({
-  apiKey: process.env.NOTIFYHUB_API_KEY,
+const notifyKit = new NotifyKitClient({
+  apiKey: process.env.NOTIFYKIT_API_KEY,
 });
 
 async function handleUserSignup(user) {
-  await notifyHub.sendEmail({
+  await notifyKit.sendEmail({
     to: user.email,
     subject: "Welcome to MyApp!",
     body: `
@@ -497,7 +497,7 @@ async function handleUserSignup(user) {
 ```typescript
 async function handleOrderPlaced(order) {
   // Send email to customer
-  await notifyHub.sendEmail({
+  await notifyKit.sendEmail({
     to: order.customerEmail,
     subject: `Order #${order.id} Confirmed`,
     body: generateOrderConfirmationEmail(order),
@@ -505,7 +505,7 @@ async function handleOrderPlaced(order) {
   });
 
   // Notify warehouse system via webhook
-  await notifyHub.sendWebhook({
+  await notifyKit.sendWebhook({
     url: "https://warehouse-system.com/api/new-order",
     method: "POST",
     payload: {
@@ -521,7 +521,7 @@ async function handleOrderPlaced(order) {
   });
 
   // Send to analytics
-  await notifyHub.sendWebhook({
+  await notifyKit.sendWebhook({
     url: "https://analytics.myapp.com/track",
     payload: {
       event: "order.placed",
@@ -542,11 +542,11 @@ async function sendEmailWithMonitoring(
   subject: string,
   body: string
 ) {
-  const job = await notifyHub.sendEmail({ to, subject, body });
+  const job = await notifyKit.sendEmail({ to, subject, body });
 
   // Check status after 5 seconds
   setTimeout(async () => {
-    const status = await notifyHub.getJob(job.jobId);
+    const status = await notifyKit.getJob(job.jobId);
 
     if (status.status === "failed") {
       console.error(`Email delivery failed: ${status.errorMessage}`);
@@ -565,9 +565,9 @@ async function sendEmailWithMonitoring(
 ### Custom Base URL (Self-Hosted or Staging)
 
 ```typescript
-const notifyHub = new NotifyHubClient({
+const notifyKit = new NotifyKitClient({
   apiKey: "ntfy_sk_...",
-  baseUrl: "https://staging-api.notifyhub.com", // Default: https://api.notifyhub.com
+  baseUrl: "https://staging-api.notifykit.dev", // Default: https://api.notifykit.dev
 });
 ```
 
@@ -593,13 +593,13 @@ All methods are fully typed. Import types for use in your code:
 
 ```typescript
 import {
-  NotifyHubClient,
+  NotifyKitClient,
   SendEmailOptions,
   SendWebhookOptions,
   JobResponse,
   JobStatus,
-  NotifyHubError,
-} from "@notifyhub/sdk";
+  NotifyKitError,
+} from "@notifykit/sdk";
 ```
 
 ---
@@ -613,10 +613,10 @@ import {
 
 ## Support
 
-- 🐛 Issues: [GitHub Issues](https://github.com/brayzonn/notifyhub-sdk/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/brayzonn/notifykit-sdk/issues)
 
 ---
 
 ## License
 
-MIT © NotifyHub
+MIT © NotifyKit

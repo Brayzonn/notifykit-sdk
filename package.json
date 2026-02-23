@@ -1,7 +1,7 @@
 {
-  "name": "@notifyhub/sdk",
+  "name": "@notifykit/sdk",
   "version": "1.0.0",
-  "description": "Official NotifyHub SDK for Node.js",
+  "description": "Official NotifyKit SDK for Node.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -14,7 +14,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "notifyhub",
+    "notifykit",
     "notifications",
     "email",
     "webhook",
@@ -24,12 +24,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brayzonn/notifyhub-sdk.git"
+    "url": "https://github.com/brayzonn/notifykit-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/brayzonn/notifyhub-sdk/issues"
+    "url": "https://github.com/brayzonn/notifykit-sdk/issues"
   },
-  "homepage": "https://github.com/brayzonn/notifyhub-sdk#readme",
+  "homepage": "https://github.com/brayzonn/notifykit-sdk#readme",
   "dependencies": {
     "axios": "^1.6.0"
   },
