@@ -15,6 +15,7 @@ export interface SendEmailOptions {
   subject: string;
   body: string;
   from?: string;
+  priority?: number;
   idempotencyKey?: string;
 }
 
@@ -27,7 +28,7 @@ export interface ApiInfo {
 
 export interface SendWebhookOptions {
   url: string;
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   payload?: any;
   headers?: Record<string, string>;
   idempotencyKey?: string;
@@ -43,9 +44,15 @@ export interface JobResponse {
 export interface JobStatus {
   id: string;
   type: string;
-  status: "pending" | "processing" | "completed" | "failed";
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
   errorMessage?: string;
   createdAt: string;
   completedAt?: string;
+}
+
+export interface RetryJobResponse {
+  jobId: string;
+  status: string;
+  message: string;
 }
