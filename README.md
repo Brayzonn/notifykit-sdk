@@ -182,8 +182,8 @@ result.data.forEach((job) => {
 const status = await client.getJob(job.jobId);
 
 if (status.status === "failed") {
-  const message = await client.retryJob(job.jobId);
-  console.log(message); // "Job has been re-queued for processing"
+  const result = await client.retryJob(job.jobId);
+  console.log(result.message); // "Job has been re-queued for processing"
 }
 ```
 
@@ -229,9 +229,9 @@ try {
 | ---------------------- | ----------------------------------- | ------------------------------ |
 | `sendEmail(options)`   | Send an email notification          | `Promise<JobResponse>`         |
 | `sendWebhook(options)` | Send a webhook notification         | `Promise<JobResponse>`         |
-| `getJob(jobId)`        | Get job status and details          | `Promise<JobDetails>`          |
+| `getJob(jobId)`        | Get job status and details          | `Promise<JobStatus>`           |
 | `listJobs(options?)`   | List jobs with optional filters     | `Promise<{ data, pagination }>` |
-| `retryJob(jobId)`      | Retry a failed job                  | `Promise<string>`              |
+| `retryJob(jobId)`      | Retry a failed job                  | `Promise<RetryJobResponse>`    |
 | `ping()`               | Test API connection                 | `Promise<string>`              |
 | `getApiInfo()`         | Get API version info                | `Promise<ApiInfo>`             |
 
