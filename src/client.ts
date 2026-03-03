@@ -65,7 +65,8 @@ export class NotifyKitClient {
             }
           }
 
-          throw new NotifyKitError(message, statusCode, data, errors);
+          const retryAfter = statusCode === 429 && typeof data?.retryAfter === 'number' ? data.retryAfter : undefined;
+          throw new NotifyKitError(message, statusCode, data, errors, retryAfter);
         }
 
         throw new NotifyKitError(error.message || 'Network error occurred');

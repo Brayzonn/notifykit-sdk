@@ -3,7 +3,8 @@ export class NotifyKitError extends Error {
     message: string,
     public statusCode?: number,
     public response?: any,
-    public errors?: any[]
+    public errors?: any[],
+    public retryAfter?: number
   ) {
     super(message);
     this.name = "NotifyKitError";
