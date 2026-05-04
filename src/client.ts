@@ -5,6 +5,7 @@ import {
   SendWebhookOptions,
   JobResponse,
   JobStatus,
+  JobSummary,
   ApiInfo,
   PaginationMeta,
   RetryJobResponse,
@@ -113,7 +114,7 @@ export class NotifyKitClient {
     limit?: number;
     type?: 'email' | 'webhook';
     status?: 'pending' | 'processing' | 'completed' | 'failed';
-  }): Promise<{ data: JobStatus[]; pagination: PaginationMeta }> {
+  }): Promise<{ data: JobSummary[]; pagination: PaginationMeta }> {
     return await this.client.get('/api/v1/notifications/jobs', {
       params: options,
     });

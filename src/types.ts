@@ -10,6 +10,8 @@ export interface PaginationMeta {
   totalPages: number;
 }
 
+export type EmailProvider = "SENDGRID" | "RESEND" | "POSTMARK";
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -17,6 +19,16 @@ export interface SendEmailOptions {
   from?: string;
   priority?: 1 | 5 | 10;
   idempotencyKey?: string;
+  /**
+   * Force this email through a specific configured provider (paid plans only).
+   * If unset, the customer's priority order with full failover applies.
+   */
+  provider?: EmailProvider;
+  /**
+   * Fallback provider to try if `provider` fails. Ignored unless `provider`
+   * is set. Other configured providers are not tried.
+   */
+  fallback?: EmailProvider;
 }
 
 export interface SendWebhookOptions {
@@ -35,6 +47,15 @@ export interface JobResponse {
   createdAt: string;
 }
 
+export interface DeliveryLog {
+  id: string;
+  attempt: number;
+  status: string;
+  usedProvider: EmailProvider | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
 export interface JobStatus {
   id: string;
   type: string;
@@ -46,6 +67,18 @@ export interface JobStatus {
   errorMessage?: string;
   createdAt: string;
   startedAt?: string;
+  completedAt?: string;
+  deliveryLogs: DeliveryLog[];
+}
+
+export interface JobSummary {
+  id: string;
+  type: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  priority: number;
+  attempts: number;
+  errorMessage?: string;
+  createdAt: string;
   completedAt?: string;
 }
 

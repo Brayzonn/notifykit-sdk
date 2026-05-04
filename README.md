@@ -74,6 +74,41 @@ await client.sendEmail({
 });
 ```
 
+### Per-Message Provider Routing (Paid Plans)
+
+By default, NotifyKit picks the email provider based on your configured priority order and falls back through all of them on failure. To pin a specific provider per message, pass `provider`. To narrow the failover to one alternative, pass `fallback`.
+
+```typescript
+// Force this email through SendGrid; if it fails, the job fails.
+await client.sendEmail({
+  to: "user@example.com",
+  subject: "Receipt",
+  body: "<h1>Thanks</h1>",
+  provider: "SENDGRID",
+});
+
+// Force SendGrid first, then Resend if SendGrid fails. No other providers tried.
+await client.sendEmail({
+  to: "user@example.com",
+  subject: "Receipt",
+  body: "<h1>Thanks</h1>",
+  provider: "SENDGRID",
+  fallback: "RESEND",
+});
+```
+
+**Validation:**
+
+| Case                                                               | Outcome           |
+| ------------------------------------------------------------------ | ----------------- |
+| `fallback` set without `provider`                                  | `400 Bad Request` |
+| `provider` equals `fallback`                                       | `400 Bad Request` |
+| Requested `provider` or `fallback` not configured for your account | `400 Bad Request` |
+
+Forced routing is a contract: NotifyKit does **not** retry through providers you didn't authorize. The routing fields persist with the job, so manual or automatic retries replay the same attempt set.
+
+To inspect which provider actually delivered (or which one was last attempted on failure), see [Tracking Jobs](#tracking-jobs) — `getJob(id)` returns a `deliveryLogs[]` array with a `usedProvider` field on each entry.
+
 ### Prevent Duplicate Sends
 
 ```typescript
@@ -114,7 +149,7 @@ await client.sendWebhook({
 ```typescript
 await client.sendWebhook({
   url: "https://yourapp.com/webhooks/order",
-  method: "POST", // GET, POST, PUT, PATCH, DELETE — default is POST
+  method: "POST",
   payload: { orderId: "12345" },
   headers: {
     "X-Webhook-Secret": process.env.WEBHOOK_SECRET!,
@@ -159,13 +194,30 @@ if (status.status === "completed") {
 }
 ```
 
+### Inspect Delivery Attempts
+
+`getJob(id)` returns a `deliveryLogs[]` array — one entry per delivery attempt — with the provider that was used:
+
+```typescript
+const status = await client.getJob(job.jobId);
+
+for (const log of status.deliveryLogs) {
+  console.log(
+    `attempt ${log.attempt} via ${log.usedProvider ?? "unknown"}: ${log.status}`,
+  );
+  if (log.errorMessage) console.log(`  error: ${log.errorMessage}`);
+}
+```
+
+For successful sends, the last entry's `usedProvider` is the provider that delivered. For failures, it's the last provider attempted. Webhook jobs return an empty array.
+
 ### List Jobs with Filters
 
 ```typescript
 const result = await client.listJobs({
   page: 1,
   limit: 20,
-  type: "email",   // Filter by type: 'email' or 'webhook'
+  type: "email", // Filter by type: 'email' or 'webhook'
   status: "failed", // Filter by status
 });
 
@@ -210,11 +262,12 @@ try {
   await client.sendEmail({ to: "bad-email", subject: "Test", body: "Hello" });
 } catch (error) {
   if (error instanceof NotifyKitError) {
-    console.error(error.getFullMessage()); // "[400] to must be an email"
+    console.error(error.getFullMessage());
 
     if (error.isStatus(400)) console.error("Bad request:", error.message);
     if (error.isStatus(401)) console.error("Invalid API key");
-    if (error.isStatus(403)) console.error("Quota or permission error:", error.message);
+    if (error.isStatus(403))
+      console.error("Quota or permission error:", error.message);
     if (error.isStatus(409)) console.error("Duplicate idempotency key");
     if (error.isStatus(429)) console.error("Rate limit exceeded");
   }
@@ -225,15 +278,15 @@ try {
 
 ## API Reference
 
-| Method                 | Description                         | Returns                        |
-| ---------------------- | ----------------------------------- | ------------------------------ |
-| `sendEmail(options)`   | Send an email notification          | `Promise<JobResponse>`         |
-| `sendWebhook(options)` | Send a webhook notification         | `Promise<JobResponse>`         |
-| `getJob(jobId)`        | Get job status and details          | `Promise<JobStatus>`           |
-| `listJobs(options?)`   | List jobs with optional filters     | `Promise<{ data, pagination }>` |
-| `retryJob(jobId)`      | Retry a failed job                  | `Promise<RetryJobResponse>`    |
-| `ping()`               | Test API connection                 | `Promise<string>`              |
-| `getApiInfo()`         | Get API version info                | `Promise<ApiInfo>`             |
+| Method                 | Description                     | Returns                         |
+| ---------------------- | ------------------------------- | ------------------------------- |
+| `sendEmail(options)`   | Send an email notification      | `Promise<JobResponse>`          |
+| `sendWebhook(options)` | Send a webhook notification     | `Promise<JobResponse>`          |
+| `getJob(jobId)`        | Get job status and details      | `Promise<JobStatus>`            |
+| `listJobs(options?)`   | List jobs with optional filters | `Promise<{ data, pagination }>` |
+| `retryJob(jobId)`      | Retry a failed job              | `Promise<RetryJobResponse>`     |
+| `ping()`               | Test API connection             | `Promise<string>`               |
+| `getApiInfo()`         | Get API version info            | `Promise<ApiInfo>`              |
 
 ### TypeScript Types
 
@@ -251,11 +304,11 @@ import type {
 
 ## Plans
 
-| Plan    | Price     | Webhooks/month | Emails/month                          |
-| ------- | --------- | -------------- | ------------------------------------- |
-| Free    | $0        | 100 (shared)   | 100 (shared with webhooks)            |
-| Indie   | $9/mo     | 4,000          | Unlimited (via your SendGrid key)     |
-| Startup | $30/mo    | 15,000         | Unlimited (via your SendGrid key)     |
+| Plan    | Price  | Webhooks/month | Emails/month                      |
+| ------- | ------ | -------------- | --------------------------------- |
+| Free    | $0     | 100 (shared)   | 100 (shared with webhooks)        |
+| Indie   | $9/mo  | 4,000          | Unlimited (via your SendGrid key) |
+| Startup | $30/mo | 15,000         | Unlimited (via your SendGrid key) |
 
 ---
 
