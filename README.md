@@ -40,7 +40,7 @@ const webhookJob = await client.sendWebhook({
 
 Emails are queued immediately (HTTP 202 Accepted) and delivered asynchronously. Use [getJob](#tracking-jobs) to confirm delivery.
 
-> **Note:** On the **Free plan**, emails send from NotifyKit's shared SendGrid account (`noreply@notifykit.dev`). On **Indie/Startup plans**, connect your own SendGrid API key in the dashboard before sending emails.
+> **Note:** On the **Free plan**, emails send from NotifyKit's shared SendGrid account (`noreply@notifykit.dev`). On **Indie/Startup plans**, connect your own SendGrid, Resend, or Postmark API key in the dashboard before sending emails.
 
 ### Basic Email
 
@@ -59,7 +59,7 @@ await client.sendEmail({
   to: "user@example.com",
   subject: "Welcome",
   body: "<h1>Hello</h1>",
-  from: "hello@em.yourapp.com", // Must be a verified domain
+  from: "hello@em.yourapp.com", // Must be a verified sending domain
 });
 ```
 
@@ -87,15 +87,17 @@ await client.sendEmail({
   provider: "SENDGRID",
 });
 
-// Force SendGrid first, then Resend if SendGrid fails. No other providers tried.
+// Force Postmark first, then Resend if Postmark fails. No other providers tried.
 await client.sendEmail({
   to: "user@example.com",
   subject: "Receipt",
   body: "<h1>Thanks</h1>",
-  provider: "SENDGRID",
+  provider: "POSTMARK",
   fallback: "RESEND",
 });
 ```
+
+Valid provider values: `"SENDGRID"` | `"RESEND"` | `"POSTMARK"`
 
 **Validation:**
 
@@ -104,6 +106,7 @@ await client.sendEmail({
 | `fallback` set without `provider`                                  | `400 Bad Request` |
 | `provider` equals `fallback`                                       | `400 Bad Request` |
 | Requested `provider` or `fallback` not configured for your account | `400 Bad Request` |
+| Either provider used on Free plan                                  | `400 Bad Request` |
 
 Forced routing is a contract: NotifyKit does **not** retry through providers you didn't authorize. The routing fields persist with the job, so manual or automatic retries replay the same attempt set.
 
@@ -130,7 +133,7 @@ await client.sendEmail({
 
 ## Sending Webhooks
 
-Webhooks are queued immediately (HTTP 202 Accepted) and delivered asynchronously with automatic retries on failure.
+Webhooks are queued immediately (HTTP 202 Accepted) and delivered asynchronously with automatic retries on failure. Payloads are capped at **10kb**.
 
 ### Basic Webhook
 
@@ -152,7 +155,6 @@ await client.sendWebhook({
   method: "POST",
   payload: { orderId: "12345" },
   headers: {
-    "X-Webhook-Secret": process.env.WEBHOOK_SECRET!,
     "X-Event-Type": "order.created",
   },
   idempotencyKey: "order-12345-webhook",
@@ -164,6 +166,50 @@ await client.sendWebhook({
 - Max 3 attempts, exponential backoff (~2s, ~4s, ~8s)
 - Retried on 5xx errors, network failures, timeouts
 - Not retried on 4xx errors
+
+---
+
+## Webhook Signing
+
+When a webhook signing secret is configured in your dashboard, NotifyKit signs every outgoing webhook delivery with HMAC-SHA256. Your receiving endpoint can verify this signature to confirm the request is genuine and hasn't been replayed.
+
+**Headers sent with each delivery:**
+
+| Header                  | Value                          |
+| ----------------------- | ------------------------------ |
+| `X-Webhook-Timestamp`   | Unix timestamp (seconds)       |
+| `X-Webhook-Signature`   | `t=<timestamp>,v1=<hex>`       |
+
+### Verifying Signatures
+
+```typescript
+import { verifyWebhookSignature } from "@notifykit/sdk";
+
+app.post("/webhooks/notifykit", (req, res) => {
+  const valid = verifyWebhookSignature({
+    payload: req.rawBody,                              // raw string — NOT parsed JSON
+    timestamp: req.headers["x-webhook-timestamp"],
+    signature: req.headers["x-webhook-signature"],
+    secret: process.env.NOTIFYKIT_WEBHOOK_SECRET!,
+    tolerance: 300,                                    // optional, default 300s (5 min)
+  });
+
+  if (!valid) return res.status(401).send("Invalid signature");
+
+  const event = req.body;
+  // handle event...
+  res.sendStatus(200);
+});
+```
+
+> **Important:** Always use the **raw body string** (`req.rawBody`), not the parsed JSON object. Re-serializing a parsed object can produce a different byte sequence and will cause verification to fail.
+
+The `tolerance` option rejects requests older than N seconds, protecting against replay attacks. Set it to `0` to disable the time check entirely.
+
+**`verifyWebhookSignature` returns `false` (never throws) when:**
+- The signature header is missing or malformed
+- The timestamp is outside the tolerance window
+- The HMAC digest does not match
 
 ---
 
@@ -209,7 +255,7 @@ for (const log of status.deliveryLogs) {
 }
 ```
 
-For successful sends, the last entry's `usedProvider` is the provider that delivered. For failures, it's the last provider attempted. Webhook jobs return an empty array.
+For successful sends, the last entry's `usedProvider` is the provider that delivered. For failures, it's the last provider attempted. Webhook jobs and Free plan jobs return `null` for `usedProvider`.
 
 ### List Jobs with Filters
 
@@ -217,8 +263,8 @@ For successful sends, the last entry's `usedProvider` is the provider that deliv
 const result = await client.listJobs({
   page: 1,
   limit: 20,
-  type: "email", // Filter by type: 'email' or 'webhook'
-  status: "failed", // Filter by status
+  type: "email",   // 'email' | 'webhook'
+  status: "failed", // 'pending' | 'processing' | 'completed' | 'failed'
 });
 
 console.log(`Total: ${result.pagination.total} jobs`);
@@ -266,10 +312,12 @@ try {
 
     if (error.isStatus(400)) console.error("Bad request:", error.message);
     if (error.isStatus(401)) console.error("Invalid API key");
-    if (error.isStatus(403))
-      console.error("Quota or permission error:", error.message);
+    if (error.isStatus(403)) console.error("Quota or permission error:", error.message);
     if (error.isStatus(409)) console.error("Duplicate idempotency key");
-    if (error.isStatus(429)) console.error("Rate limit exceeded");
+    if (error.isStatus(429)) {
+      console.error("Rate limit exceeded");
+      if (error.retryAfter) console.log(`Retry after ${error.retryAfter}s`);
+    }
   }
 }
 ```
@@ -278,15 +326,23 @@ try {
 
 ## API Reference
 
-| Method                 | Description                     | Returns                         |
-| ---------------------- | ------------------------------- | ------------------------------- |
-| `sendEmail(options)`   | Send an email notification      | `Promise<JobResponse>`          |
-| `sendWebhook(options)` | Send a webhook notification     | `Promise<JobResponse>`          |
-| `getJob(jobId)`        | Get job status and details      | `Promise<JobStatus>`            |
-| `listJobs(options?)`   | List jobs with optional filters | `Promise<{ data, pagination }>` |
-| `retryJob(jobId)`      | Retry a failed job              | `Promise<RetryJobResponse>`     |
-| `ping()`               | Test API connection             | `Promise<string>`               |
-| `getApiInfo()`         | Get API version info            | `Promise<ApiInfo>`              |
+### `NotifyKitClient` methods
+
+| Method                          | Description                     | Returns                         |
+| ------------------------------- | ------------------------------- | ------------------------------- |
+| `sendEmail(options)`            | Send an email notification      | `Promise<JobResponse>`          |
+| `sendWebhook(options)`          | Send a webhook notification     | `Promise<JobResponse>`          |
+| `getJob(jobId)`                 | Get job status and delivery logs | `Promise<JobStatus>`            |
+| `listJobs(options?)`            | List jobs with optional filters | `Promise<{ data, pagination }>` |
+| `retryJob(jobId)`               | Retry a failed job              | `Promise<RetryJobResponse>`     |
+| `ping()`                        | Test API connection             | `Promise<string>`               |
+| `getApiInfo()`                  | Get API version info            | `Promise<ApiInfo>`              |
+
+### Standalone utilities
+
+| Function                        | Description                                        |
+| ------------------------------- | -------------------------------------------------- |
+| `verifyWebhookSignature(options)` | Verify HMAC-SHA256 signature on incoming webhooks |
 
 ### TypeScript Types
 
@@ -296,7 +352,13 @@ import type {
   SendEmailOptions,
   SendWebhookOptions,
   JobResponse,
+  JobStatus,
+  JobSummary,
+  DeliveryLog,
+  RetryJobResponse,
   ApiInfo,
+  EmailProvider,
+  VerifyWebhookSignatureOptions,
 } from "@notifykit/sdk";
 ```
 
@@ -304,11 +366,11 @@ import type {
 
 ## Plans
 
-| Plan    | Price  | Webhooks/month | Emails/month                      |
-| ------- | ------ | -------------- | --------------------------------- |
-| Free    | $0     | 100 (shared)   | 100 (shared with webhooks)        |
-| Indie   | $9/mo  | 4,000          | Unlimited (via your SendGrid key) |
-| Startup | $30/mo | 15,000         | Unlimited (via your SendGrid key) |
+| Plan    | Price   | Webhooks/month | Emails/month               | Rate limit   |
+| ------- | ------- | -------------- | -------------------------- | ------------ |
+| Free    | $0      | 100 (shared)   | 100 (shared with webhooks) | 5 req/min    |
+| Indie   | $5/mo   | 4,000          | Unlimited (via your key)   | 50 req/min   |
+| Startup | $15/mo  | 15,000         | Unlimited (via your key)   | 200 req/min  |
 
 ---
 
