@@ -370,7 +370,7 @@ import type {
 | ------- | ------- | -------------- | -------------------------- | ------------ |
 | Free    | $0      | 100 (shared)   | 100 (shared with webhooks) | 5 req/min    |
 | Indie   | $5/mo   | 4,000          | Unlimited (via your key)   | 50 req/min   |
-| Startup | $15/mo  | 15,000         | Unlimited (via your key)   | 200 req/min  |
+| Startup | $10/mo  | 15,000         | Unlimited (via your key)   | 200 req/min  |
 
 ---
 
