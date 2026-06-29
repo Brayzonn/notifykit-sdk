@@ -322,6 +322,18 @@ try {
 }
 ```
 
+### Automatic Retries & Timeouts
+
+The SDK retries transient failures automatically:
+
+- Retries up to **2 times** (3 attempts total) on **5xx**, **429**, and network errors, with backoff (~200ms → ~500ms).
+- On **429**, it waits for the server's `retryAfter` (capped at 10s) before retrying.
+- **Other 4xx errors** (e.g. 400, 401, 409) fail immediately — they are never retried.
+- Non-idempotent requests (`sendEmail`, `sendWebhook`, `retryJob`) are **not** retried on a timeout or dropped connection, to avoid duplicate sends.
+- Every request times out after **10 seconds**.
+
+> This is distinct from NotifyKit's server-side **webhook delivery** retries (see [Sending Webhooks](#sending-webhooks)), which control how delivery to your endpoint is re-attempted.
+
 ---
 
 ## API Reference
